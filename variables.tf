@@ -29,6 +29,11 @@ variable "vault_domain_name" {
   description = "The domain name to use in the DNS A record for the Vault ELB (e.g. vault.example.com). Make sure that a) this is a domain within the var.hosted_zone_domain_name hosted zone and b) this is the same domain name you used in the TLS certificates for Vault. Only used if var.create_dns_entry is true."
 }
 
+variable "private_zone" {
+  description = "Whether or not the hosted zone is private. Must contain the specified VPC ID"
+  default     = false
+}
+
 variable "ssh_key_name" {
   description = "The name of an EC2 Key Pair that can be used to SSH to the EC2 Instances in this cluster. Set to an empty string to not associate a Key Pair."
 }
@@ -38,16 +43,15 @@ variable "ssh_key_name" {
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 
-variable "subnet_tags" {
-  description = "Tags used to find subnets for vault and consul servers"
-  type        = "map"
-  default     = {}
+variable "subnet_ids" {
+  description = "A list of subnets to use for the deployment"
+  type        = "list"
+  default     = []
 }
 
-variable "vpc_tags" {
-  description = "Tags used to find a vpc for building resources in"
-  type        = "map"
-  default     = {}
+variable "vpc_id" {
+  description = "The VPC to deploy to. Required if use_default_vpc is false or undefined."
+  default     = ""
 }
 
 variable "use_default_vpc" {
@@ -72,12 +76,12 @@ variable "vault_cluster_size" {
 
 variable "consul_cluster_size" {
   description = "The number of Consul server nodes to deploy. We strongly recommend using 3 or 5."
-  default     = 3
+  default     = 0
 }
 
 variable "vault_instance_type" {
   description = "The type of EC2 Instance to run in the Vault ASG"
-  default     = "t2.micro"
+  default     = "t3.small"
 }
 
 variable "consul_instance_type" {
