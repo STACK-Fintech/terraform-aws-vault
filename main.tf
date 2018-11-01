@@ -96,15 +96,17 @@ module "consul_iam_policies_servers" {
 # ---------------------------------------------------------------------------------------------------------------------
 # THE USER DATA SCRIPT THAT WILL RUN ON EACH VAULT SERVER WHEN IT'S BOOTING
 # This script will configure and start Vault
+# This script requires that you provide an ACL token with valid permissions on the Consul cluster!
 # ---------------------------------------------------------------------------------------------------------------------
 
 data "template_file" "user_data_vault_cluster" {
-  template = "${file("${path.module}/examples/root-example/user-data-vault.sh")}"
+  template = "${file("${path.module}/examples/acl-example/user-data-vault.sh")}"
 
   vars {
     aws_region               = "${data.aws_region.current.name}"
     consul_cluster_tag_key   = "${var.consul_cluster_tag_key}"
     consul_cluster_tag_value = "${var.consul_cluster_name}"
+    consul_acl_token         = "${var.consul_acl_token}"
   }
 }
 

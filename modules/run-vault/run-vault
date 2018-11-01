@@ -36,6 +36,7 @@ function print_usage {
   echo -e "  --enable-s3-backend\tIf this flag is set, an S3 backend will be enabled in addition to the HA Consul backend. Default is false."
   echo -e "  --s3-bucket\tSpecifies the S3 bucket to use to store Vault data. Only used if '--enable-s3-backend' is set."
   echo -e "  --s3-bucket-region\tSpecifies the AWS region where `--s3-bucket` lives. Only used if `--enable-s3-backend` is set."
+  echo -e "  --consul-acl-token\tThe ACL token required for connecting to Consul."
   echo
   echo "Optional Arguments for enabling the AWS KMS seal (Vault Enterprise only):"
   echo
@@ -146,6 +147,7 @@ function generate_vault_config {
   local readonly enable_auto_unseal="${11}"
   local readonly auto_unseal_kms_key_id="${12}"
   local readonly auto_unseal_kms_key_region="${13}"
+  local readonly consul_acl_token="${14}"
   local readonly config_path="$config_dir/$VAULT_CONFIG_FILE"
 
   local instance_ip_address
@@ -191,8 +193,24 @@ EOF
 )
     consul_storage_type="ha_storage"
   fi
+local consul_storage=""
+if [[ ! -z "$consul_acl_token" ]]; then
+  consul_storage=$(cat <<EOF
+$consul_storage_type "consul" {
+  address = "127.0.0.1:8500"
+  path    = "vault/"
+  token   = "$consul_acl_token"
+  service = "vault"
+}
 
-  local readonly consul_storage=$(cat <<EOF
+# HA settings
+cluster_addr  = "https://$instance_ip_address:$cluster_port"
+api_addr      = "$api_addr"
+
+EOF
+)
+else
+  consul_storage=$(cat <<EOF
 $consul_storage_type "consul" {
   address = "127.0.0.1:8500"
   path    = "vault/"
@@ -206,6 +224,7 @@ api_addr      = "$api_addr"
 
 EOF
 )
+fi
 
   vault_version_at_least "$config_path" "$ui_config"
 
@@ -270,6 +289,7 @@ function run {
   local auto_unseal_region=""
   local auto_unseal_kms_key_id=""
   local auto_unseal_kms_key_region=""
+  local consul_acl_token=""
   local all_args=()
 
   while [[ $# > 0 ]]; do
@@ -353,6 +373,10 @@ function run {
         auto_unseal_kms_key_region="$2"
         shift
         ;;
+      --consul-acl-token)
+        consul_acl_token="$2"
+        shift
+        ;;
       --help)
         print_usage
         exit
@@ -426,7 +450,8 @@ function run {
       "$s3_bucket_region" \
       "$enable_auto_unseal" \
       "$auto_unseal_kms_key_id" \
-      "$auto_unseal_kms_key_region"
+      "$auto_unseal_kms_key_region" \
+      "$consul_acl_token"
   fi
 
   generate_supervisor_config "$SUPERVISOR_CONFIG_PATH" "$config_dir" "$bin_dir" "$log_dir" "$log_level" "$user"
