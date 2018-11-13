@@ -177,6 +177,7 @@ listener "tcp" {
   cluster_address = "0.0.0.0:$cluster_port"
   tls_cert_file   = "$tls_cert_file"
   tls_key_file    = "$tls_key_file"
+  tls_disable_client_certs = true
 }\n
 EOF
 )
